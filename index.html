@@ -1,0 +1,231 @@
+<!doctype html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+	<title>reveal.js</title>
+
+	<link rel="stylesheet" href="css/reveal.css">
+	<link rel="stylesheet" href="css/theme/simple.css">
+
+	<!-- Theme used for syntax highlighting of code -->
+	<link rel="stylesheet" href="lib/css/vs.css">
+
+	<!-- Printing and PDF exports -->
+	<script>
+		var link = document.createElement('link');
+		link.rel = 'stylesheet';
+		link.type = 'text/css';
+		link.href = window.location.search.match(/print-pdf/gi) ? 'css/print/pdf.css' : 'css/print/paper.css';
+		document.getElementsByTagName('head')[0].appendChild(link);
+	</script>
+</head>
+
+<body>
+	<div class="reveal">
+		<div class="slides">
+			<section>
+				mush - A dependency injection framework
+				<a href="http://mush.readthedocs.io/">http://mush.readthedocs.io/</a>
+			</section>
+			<section>
+				<pre> <code data-trim data-noescape>
+					from mush import Runner
+					
+					def func1():
+					  print('One Mississippi')
+					
+					def func2():
+					  print('Two Mississippi')
+					
+					def func3():
+					  print('Three Mississippi')
+
+					runner = Runner(func1, func2)
+					runner.add(func3)
+					runner()
+				</code>
+				</pre>
+				<pre>
+				<code data-trim data-noescape>
+					One Mississippi
+					Two Mississippi
+					Three Mississippi
+				</code>
+				</pre>
+			</section>
+			<section>
+				We make tea!
+				<pre> <code data-trim data-noescape>
+					def boil_water():
+					  print('Boiling water')
+						
+					def add_teabags():
+					  print('Tea bag in the mug!')
+						
+					def pour_water():
+					  print('Water water water!')
+
+					runner = Runner(boil_water)
+					runner.add_label('teabags')
+					runner.add(pour_water)
+
+					runner['teabags'].add(add_teabags)
+					runner()
+					</code>
+				</pre>
+				<pre> <code data-trim data-noescape>
+					Boiling water
+					Tea bag in the mug!
+					Water water water!	
+					</code>
+				</pre>
+			</section>
+			<section>
+				<section>
+					<pre> <code data-trim data-noescape>
+					class Apple():
+					  __repr__ = __str__
+
+					  def __str__(self):
+					    return 'apple'
+					
+					class Orange():
+					  __repr__ = __str__
+
+					  def __str__(self):
+						return 'orange'
+					
+				</code> </pre>
+				</section>
+				<section>
+					<pre> <code data-trim data-noescape>
+					def apple_store():
+					  print('Your apple sir!')
+					    return Apple()
+					  
+					def magician(apple: Apple):
+					  print('I turn {0}s into oranges!'.format(apple))
+					  return Orange()
+					  
+					def juicer(apple: Apple, orange: Orange):
+					  print("Stuff with an {0} and an {1}".format(apple, orange))
+					</code>
+					</pre>
+					<pre> <code data-trim data-noescape>
+						runner = Runner()
+						runner.add(apple_store)
+						runner.add(magician, requires=Apple)
+						runner.add(juicer, requires=(Orange, Apple))
+						runner()
+					</code> </pre>
+				</section>
+				<section>
+					<pre> <code data-trim data-noescape>
+					  Your apple sir!
+					  I turn apples into oranges!
+					  Stuff with an apple and an orange
+					</code> </pre>
+				</section>
+			</section>
+			<section>
+				<pre> <code data-trim data-noescape>
+					from mush import Runner, requires, returns
+					
+					@requires(Apple)
+					@returns(Orange)
+					def old_magician(apple):
+					  print('I turn {0}s into oranges!'.format(apple))
+					  return Orange()
+					
+					@requires(Apple, Orange)
+					def old_juicer(apple, orange):   
+					  print("Finally some {0} and {1} juice".format(apple, orange))
+				</code>
+				</pre> 
+			</section>
+			</section>
+			<section>
+				OK, OK but is this useful at all?
+			</section>
+			<section>
+				<section>
+					<pre> <code data-trim data-noescape>
+					class Transaction(object):
+					
+					  def __enter__(self):
+					    print('transaction start')
+						
+					  def __exit__(self, type, obj, tb):
+					    if type:
+					      print('abort')
+					    else:
+					      print('commit') 
+					</code></pre>
+					<pre> <code data-trim data-noescape>
+						def select():
+							print('select username, password from user')
+						
+						def insert():
+							print("insert into users values('dog', 'hog')")
+					</code></pre>
+				</section>
+				<section><pre><code data-trim data-noescape>
+					from mush import Runner
+					runner = Runner(Transaction, select, insert)
+					runner()
+					</code> </pre>
+					The context manager is wrapped around all callables that are called after it
+					<pre><code data-trim data-noescape>
+					start transaction
+					select username, password from user
+					insert into user values('dog', 'hog')
+					commit							
+					</code> </pre>
+				</section>
+			</section>
+			<section>but... testing?
+			 <pre><code data-trim data-noescape>
+			 def real_db():
+				return db.create(connection_string)
+				
+			 def mock_db():
+				return mock.MagicMock()
+
+			runner = Runner(real_db)
+			test_runner = runner.clone()
+			test_runner.replace(real_db, mock_db)
+						 
+			 </code></pre>
+			</section>
+			<section> 
+			Summary
+			<ul>
+				<li>design for callables, testing in isolation</li>
+				<li>easy to do create context managers (transactions, locks, file descriptors)</li>
+			</ul>
+			</section>
+		</div>
+	</div>
+
+	<script src="lib/js/head.min.js"></script>
+	<script src="js/reveal.js"></script>
+
+	<script>
+		// More info about config & dependencies:
+		// - https://github.com/hakimel/reveal.js#configuration
+		// - https://github.com/hakimel/reveal.js#dependencies
+		Reveal.initialize({
+			dependencies: [
+				{ src: 'plugin/markdown/marked.js' },
+				{ src: 'plugin/markdown/markdown.js' },
+				{ src: 'plugin/notes/notes.js', async: true },
+				{ src: 'plugin/highlight/highlight.js', async: true, callback: function () { hljs.initHighlightingOnLoad(); } }
+			]
+		});
+	</script>
+</body>
+
+</html>
